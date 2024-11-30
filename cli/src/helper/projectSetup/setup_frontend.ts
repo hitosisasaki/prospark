@@ -9,6 +9,7 @@ import cleanUpProjectName from "../../util/cleanProjectName.js";
 import logger from "../../util/logger.js";
 import showLoading from "../../util/loader.js";
 import { installDepInPkgJson } from "../../helper/installDependencies.js";
+import { installDepInPkgJson } from "../../helper/installDependencies.js";
 import chalk from "chalk";
 import { VANILLA_CSS_CONTENT, VANILLA_HTML_CONTENT } from "../../data/template.js";
 import { vanillSetupMessage } from "../../const/index.js";
@@ -37,9 +38,11 @@ enum Variant{
 }
 
 class SetupFrontend extends ProjectBaseSetup{
+class SetupFrontend extends ProjectBaseSetup{
     
     protected variant;
     public constructor(promptInput: ProjectOptions){
+        super()
         super()
         this.variant = promptInput.variant;
         this.variant.toLowerCase() === "javascript" && this.handleJavascriptSetup(promptInput);
@@ -85,6 +88,17 @@ class SetupFrontend extends ProjectBaseSetup{
         }
     }
 
+            Loader.start("setting up tailwindcss...")
+            createFile(path, postcssFilename, `module.exports=${JSON.stringify(postcssCont, null, 2)}`);
+            createFile(path, tailwindFilename, `module.exports=${JSON.stringify(tailwindCont, null, 2)}`);
+            createFile(path+"/src", indexCssname, indexCssCont);
+            Loader.stop("tailwindcss successfully setup.", null);
+
+        } catch (e: any) {
+            logger.error(e)
+        }
+    }
+
 
     public handleJavascriptSetup(promptInput: ProjectOptions){
         const {frontendFramework, frontendStyling} = promptInput;
@@ -99,6 +113,9 @@ class SetupFrontend extends ProjectBaseSetup{
         // React setup (.js and .ts)
         if(frontendFramework?.toLowerCase() === "react" && frontendStyling?.toLowerCase() === "tailwindcss"){
             return this.isReactAndTailwind(promptInput)
+        } 
+        if(frontendFramework?.toLowerCase() === "react" && frontendStyling?.toLowerCase() === "css module"){
+            return this.isReactAndCssModule(promptInput)
         } 
     }
 
@@ -164,6 +181,7 @@ class SetupFrontend extends ProjectBaseSetup{
 
             // update html file to include tailwindcss config
             await updateFileContent(htmlFilePath, pretty(newHtmlData,{ocd: true}), false);
+            await updateFileContent(htmlFilePath, pretty(newHtmlData,{ocd: true}), false);
             // update package.json
             await updateFileContent(to+"/package.json", JSON.stringify(pkgJsonData, null, 2));
             
@@ -173,6 +191,7 @@ class SetupFrontend extends ProjectBaseSetup{
             let hasInstalled = false;
 
             if(shouldInstall){
+                await installDepInPkgJson(to);
                 await installDepInPkgJson(to);
                 hasInstalled = true;
             }
@@ -257,6 +276,7 @@ class SetupFrontend extends ProjectBaseSetup{
 
             // update html file to include tailwindcss config
             await updateFileContent(htmlFilePath, pretty(newHtmlData,{ocd: true}), false);
+            await updateFileContent(htmlFilePath, pretty(newHtmlData,{ocd: true}), false);
             // update package.json
             await updateFileContent(to+"/package.json", JSON.stringify(pkgJsonData, null, 2));
 
@@ -269,6 +289,7 @@ class SetupFrontend extends ProjectBaseSetup{
             
             if(shouldInstall){
                 // start installation
+                await installDepInPkgJson(to);
                 await installDepInPkgJson(to);
                 hasInstalled = true;
             }
@@ -316,10 +337,8 @@ class SetupFrontend extends ProjectBaseSetup{
             const to = projDirPath;
             const newPkgJsonPath = `${to}/package.json`
             
-            // copy template folder to cwd where this command is been initiated.
             await copyDirectoryToDestination(from, to);
             
-            // setup tailwindcss for vanilla js and html
             await this.configureReactTailwindCss(to)
 
             // update package.json
