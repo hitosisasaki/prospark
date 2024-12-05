@@ -9,13 +9,13 @@ import cleanUpProjectName from "../../util/cleanProjectName.js";
 import logger from "../../util/logger.js";
 import showLoading from "../../util/loader.js";
 import { installDepInPkgJson } from "../../helper/installDependencies.js";
-import { installDepInPkgJson } from "../../helper/installDependencies.js";
 import chalk from "chalk";
 import { VANILLA_CSS_CONTENT, VANILLA_HTML_CONTENT } from "../../data/template.js";
 import { vanillSetupMessage } from "../../const/index.js";
 import initializeGit from "../../helper/initGit.js";
 import ProjectBaseSetup from "./base_setup.js";
 import sleep from "../../util/sleep.js";
+import fs from "fs-extra";
 
 /**
  * 
@@ -38,11 +38,9 @@ enum Variant{
 }
 
 class SetupFrontend extends ProjectBaseSetup{
-class SetupFrontend extends ProjectBaseSetup{
     
     protected variant;
     public constructor(promptInput: ProjectOptions){
-        super()
         super()
         this.variant = promptInput.variant;
         this.variant.toLowerCase() === "javascript" && this.handleJavascriptSetup(promptInput);
@@ -51,6 +49,9 @@ class SetupFrontend extends ProjectBaseSetup{
 
 
     protected async configureReactTailwindCss(path: string){
+        
+        if(!fs.pathExistsSync(path)) return;
+        
         const Loader = await showLoading()
         
         try {
@@ -64,7 +65,7 @@ class SetupFrontend extends ProjectBaseSetup{
             },
             tailwindFilename = `tailwind.config.cjs`,
             tailwindCont = {
-                content: ["./src/**/*.{html,js}", "./index.html"],
+                content: [ "./index.html","./src/**/*.{html,js,jsx,ts,tsx}"],
                 theme: {
                     extend: {},
                 },
@@ -88,10 +89,40 @@ class SetupFrontend extends ProjectBaseSetup{
         }
     }
 
+    protected async configureSvelteTailwindCss(path: string){
+        
+        if(!fs.pathExistsSync(path)) return;
+        
+        const Loader = await showLoading()
+        
+        try {
+            // files and file content
+            let postcssFilename = `postcss.config.cjs`,
+            postcssCont = {
+                plugins: {
+                tailwindcss: {},
+                autoprefixer: {},
+                }
+            },
+            tailwindFilename = `tailwind.config.cjs`,
+            tailwindCont = {
+                content: ['./src/**/*.{html,js,svelte,ts}'],
+                theme: {
+                    extend: {},
+                },
+                plugins: [],
+            },
+            appCssname = `app.css`,
+            appCssCont = `
+            @tailwind base;
+            @tailwind components;
+            @tailwind utilities;
+            `.replace(/^\s+/gm, '')
+
             Loader.start("setting up tailwindcss...")
             createFile(path, postcssFilename, `module.exports=${JSON.stringify(postcssCont, null, 2)}`);
             createFile(path, tailwindFilename, `module.exports=${JSON.stringify(tailwindCont, null, 2)}`);
-            createFile(path+"/src", indexCssname, indexCssCont);
+            createFile(path+"/src", appCssname, appCssCont);
             Loader.stop("tailwindcss successfully setup.", null);
 
         } catch (e: any) {
@@ -99,24 +130,27 @@ class SetupFrontend extends ProjectBaseSetup{
         }
     }
 
+    public handleFrontendSetup(promptInput: ProjectOptions) {
+        const {frontendFramework, frontendStyling} : any = promptInput;
+      
+        switch (`${frontendFramework.toLowerCase()}-${frontendStyling.toLowerCase()}`) {
+          case "vanilla-tailwindcss":
+            return this.isVanillaAndTailwind(promptInput);
+          case "vanilla-css module":
+            return this.isVanillaAndCssModule(promptInput);
+          case "react-tailwindcss":
+            return this.isReactAndTailwind(promptInput);
+          case "react-css module":
+            return this.isReactAndCssModule(promptInput);
+        case "svelte-tailwindcss":
+            return this.isSvelteAndTailwindCss(promptInput);
+          default:
+            // code to handle other cases or an error
+        }
+    }
 
     public handleJavascriptSetup(promptInput: ProjectOptions){
-        const {frontendFramework, frontendStyling} = promptInput;
-
-        // Vanilla setup (.js and .ts)
-        if(frontendFramework?.toLowerCase() === "vanilla" && frontendStyling?.toLowerCase() === "tailwindcss"){
-            return this.isVanillaAndTailwind(promptInput)
-        }
-        if(frontendFramework?.toLowerCase() === "vanilla" && frontendStyling?.toLowerCase() === "css module"){
-            return this.isVanillaAndCssModule(promptInput)
-        } 
-        // React setup (.js and .ts)
-        if(frontendFramework?.toLowerCase() === "react" && frontendStyling?.toLowerCase() === "tailwindcss"){
-            return this.isReactAndTailwind(promptInput)
-        } 
-        if(frontendFramework?.toLowerCase() === "react" && frontendStyling?.toLowerCase() === "css module"){
-            return this.isReactAndCssModule(promptInput)
-        } 
+        return this.handleFrontendSetup(promptInput)
     }
 
     public handleTypescriptSetup(promptInput: ProjectOptions){
@@ -173,7 +207,6 @@ class SetupFrontend extends ProjectBaseSetup{
 
             // update html file to include tailwindcss config
             await updateFileContent(htmlFilePath, pretty(newHtmlData,{ocd: true}), false);
-            await updateFileContent(htmlFilePath, pretty(newHtmlData,{ocd: true}), false);
             // update package.json
             await updateFileContent(to+"/package.json", JSON.stringify(pkgJsonData, null, 2));
             
@@ -183,7 +216,6 @@ class SetupFrontend extends ProjectBaseSetup{
             let hasInstalled = false;
 
             if(shouldInstall){
-                await installDepInPkgJson(to);
                 await installDepInPkgJson(to);
                 hasInstalled = true;
             }
@@ -267,7 +299,6 @@ class SetupFrontend extends ProjectBaseSetup{
 
             // update html file to include tailwindcss config
             await updateFileContent(htmlFilePath, pretty(newHtmlData,{ocd: true}), false);
-            await updateFileContent(htmlFilePath, pretty(newHtmlData,{ocd: true}), false);
             // update package.json
             await updateFileContent(to+"/package.json", JSON.stringify(pkgJsonData, null, 2));
 
@@ -280,7 +311,6 @@ class SetupFrontend extends ProjectBaseSetup{
             
             if(shouldInstall){
                 // start installation
-                await installDepInPkgJson(to);
                 await installDepInPkgJson(to);
                 hasInstalled = true;
             }
@@ -330,29 +360,119 @@ class SetupFrontend extends ProjectBaseSetup{
             
             await copyDirectoryToDestination(from, to);
             
-            await this.configureReactTailwindCss(to)
-
-            // update package.json
-            const pkgJsonData : any = await this.configureReactPkgJson(newPkgJsonPath, projectName);
+            const pkgJsonData : any = await this.configureReactPkgJson(newPkgJsonPath, projectName, frontendStyling as string);
 
             if(pkgJsonData === null && Object.entries(pkgJsonData).length === 0) return;
-
             
-            // update react files
             await this.updateFrameworkTemplateFiles(promptInput, to);
             await updateFileContent(newPkgJsonPath, JSON.stringify(pkgJsonData, null, 2));
+            
+            await this.configureReactTailwindCss(to)
 
-            // ask for packages to be installed
             const shouldInstall = await this.askDependenciesInstalled();
             let hasInstalled = false;
             
             if(shouldInstall){
-                // start installation
                 await installDepInPkgJson(to);
                 hasInstalled = true;
             }
 
-            // ask for git initialization
+            const shouldInitializeGit = await this.askForGitInit();
+            
+            if(shouldInitializeGit){
+                await initializeGit(to);
+            }
+
+            this.showWelcomeMessage(vanillSetupMessage, hasInstalled, cleanProjectName, to);
+
+        } catch (e: any) {
+            logger.error(e)
+        }
+    }
+
+    protected async isReactAndCssModule(promptInput: ProjectOptions){
+        const {projectName, projectType, architecture, stack, variant, frontendFramework, frontendStyling} = promptInput;
+        const templatePath = variant.toLowerCase() === Variant.JS ? `/js_support/react/` : `/ts_support/react/`
+        const reactDir = path.join("./",CLIENT_TEMPLATE_DIR, templatePath);
+        const cleanProjectName = cleanUpProjectName(projectName)
+        const dest_path = getCwd();
+
+        if(cleanProjectName !== "."){
+            await createFolder(cleanProjectName, dest_path)
+        }
+
+        try {
+            const projDirPath = `${getCwd()}/${cleanProjectName}`;
+            const from = reactDir;
+            const to = projDirPath;
+            const newPkgJsonPath = `${to}/package.json`
+            
+            await copyDirectoryToDestination(from, to);
+            
+            const pkgJsonData : any = await this.configureReactPkgJson(newPkgJsonPath, projectName, frontendStyling as string);
+
+            if(pkgJsonData === null && Object.entries(pkgJsonData).length === 0) return;
+            
+            await this.updateFrameworkTemplateFiles(promptInput, to);
+            await updateFileContent(newPkgJsonPath, JSON.stringify(pkgJsonData, null, 2));
+            
+            const shouldInstall = await this.askDependenciesInstalled();
+            let hasInstalled = false;
+            
+            if(shouldInstall){
+                await installDepInPkgJson(to);
+                hasInstalled = true;
+            }
+
+            const shouldInitializeGit = await this.askForGitInit();
+            
+            if(shouldInitializeGit){
+                await initializeGit(to);
+            }
+
+            this.showWelcomeMessage(vanillSetupMessage, hasInstalled, cleanProjectName, to);
+
+        } catch (e: any) {
+            logger.error(e)
+        }
+    }
+
+    protected async isSvelteAndTailwindCss(promptInput: ProjectOptions){
+        const {projectName, projectType, architecture, stack, variant, frontendFramework, frontendStyling} = promptInput;
+        const templatePath = variant.toLowerCase() === Variant.JS ? `/js_support/svelte/` : `/ts_support/svelte/`
+        const reactDir = path.join("./",CLIENT_TEMPLATE_DIR, templatePath);
+        const cleanProjectName = cleanUpProjectName(projectName)
+        const dest_path = getCwd();
+
+        if(cleanProjectName !== "."){
+            await createFolder(cleanProjectName, dest_path)
+        }
+
+        try {
+            const projDirPath = `${getCwd()}/${cleanProjectName}`;
+            const from = reactDir;
+            const to = projDirPath;
+            const newPkgJsonPath = `${to}/package.json`
+            
+            await copyDirectoryToDestination(from, to);
+            
+            const pkgJsonData : any = await this.configureSveltePkgJson(newPkgJsonPath, projectName, frontendStyling as string);
+
+            if(pkgJsonData === null && Object.entries(pkgJsonData).length === 0) return;
+            
+            await this.updateFrameworkTemplateFiles(promptInput, to);
+            await updateFileContent(newPkgJsonPath, JSON.stringify(pkgJsonData, null, 2));
+            
+            await this.configureSvelteTailwindCss(to)
+
+            const shouldInstall = await this.askDependenciesInstalled();
+            let hasInstalled = false;
+            
+            if(shouldInstall){
+                await installDepInPkgJson(to);
+                hasInstalled = true;
+            }
+
             const shouldInitializeGit = await this.askForGitInit();
             
             if(shouldInitializeGit){
