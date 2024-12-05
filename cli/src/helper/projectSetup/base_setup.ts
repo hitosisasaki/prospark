@@ -2,7 +2,7 @@ import ProjectOptions from "../../@types/project.js";
 import chalk from "chalk";
 import inquirer from "inquirer";
 import showLoading from "../../util/loader.js";
-import { REACT_APP_JSX, REACT_INDEX_HTML, VANILLA_CSS_CONTENT } from "../../data/template.js";
+import { APP_SVELTE, COUNTER_SVELTE, REACT_APP_JSX, REACT_INDEX_HTML, VANILLA_CSS_CONTENT } from "../../data/template.js";
 import { createFolder, createFile, updateFileContent } from "../../helper/file-manager.js";
 import pretty from "pretty"
 import logger from "../../util/logger.js";
@@ -144,7 +144,7 @@ class ProjectBaseSetup{
 
                     const reactIndexHtml = REACT_INDEX_HTML
                     .replace("{{title}}", "Prospark App")
-                    .replace("{{script_link}}", "./src/main.jsx")
+                    .replace("{{script_link}}", `./src/main.${fileExt}`)
     
                     await updateFileContent(appJsx, pretty(AppJsx), false)
                     await updateFileContent(htmlFile, pretty(reactIndexHtml), false)

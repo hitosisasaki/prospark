@@ -120,17 +120,9 @@ class SetupFrontend extends ProjectBaseSetup{
     }
 
     public handleTypescriptSetup(promptInput: ProjectOptions){
-        const {frontendFramework, frontendStyling} = promptInput;
-
-        if(frontendFramework?.toLowerCase() === "vanilla" && frontendStyling?.toLowerCase() === "tailwindcss"){
-            return this.isVanillaAndTailwind(promptInput)
-        }
-        if(frontendFramework?.toLowerCase() === "vanilla" && frontendStyling?.toLowerCase() === "css module"){
-            return this.isVanillaAndCssModule(promptInput)
-        }
+        return this.handleFrontendSetup(promptInput)
     }
 
-    // if the frontend framework choosen is vanilla and styling used is tailwindcss
     protected async isVanillaAndTailwind(promptInput: ProjectOptions){
         const {projectName, projectType, architecture, stack, variant, frontendFramework, frontendStyling} = promptInput;
         const templatePath = variant.toLowerCase() === Variant.JS ? `/js_support/vanilla` : `/ts_support/vanilla`
@@ -222,7 +214,6 @@ class SetupFrontend extends ProjectBaseSetup{
         }
     }
 
-    // if framework choosen is vanilla and css module
     protected async isVanillaAndCssModule(promptInput: ProjectOptions){
         const {projectName, projectType, architecture, stack, variant, frontendFramework, frontendStyling} = promptInput;
         const templatePath = variant.toLowerCase() === Variant.JS ? `/js_support/vanilla` : `/ts_support/vanilla`
