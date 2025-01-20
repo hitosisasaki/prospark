@@ -1,11 +1,6 @@
-# dist folder
-dist
 
-# Redundant files
+/node_modules
 
-name.txt
-todo.md
-
-/cli/logs
-
-test
+# packages node_modules
+/packages/**/node_modules
+/packages/**/node_modules
